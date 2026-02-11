@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useWallet } from "@/components/WalletProvider";
 
 type TaskStatus = "Open" | "Claimed" | "Submitted" | "Released";
 
@@ -42,7 +43,7 @@ export default function Home() {
         rewardHot: 35,
         status: "Open",
         funded: false,
-        createdAt: Date.now() - 1000 * 60 * 60 * 6,
+        createdAt: 1700000000000,
       },
       {
         id: "t2",
@@ -52,21 +53,20 @@ export default function Home() {
         rewardHot: 20,
         status: "Open",
         funded: false,
-        createdAt: Date.now() - 1000 * 60 * 60 * 3,
+        createdAt: 1700003600000,
       },
     ],
     []
   );
 
-  const [connected, setConnected] = useState(false);
+  const { accountId, connect, disconnect } = useWallet();
 
   // Persisted tasks
-  const [tasks, setTasks] = useState<Task[]>([]);
-  useEffect(() => {
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    if (typeof window === "undefined") return initialTasks;
     const saved = localStorage.getItem("hottasks");
-    if (saved) setTasks(JSON.parse(saved));
-    else setTasks(initialTasks);
-  }, [initialTasks]);
+    return saved ? JSON.parse(saved) : initialTasks;
+  });
 
   useEffect(() => {
     localStorage.setItem("hottasks", JSON.stringify(tasks));
@@ -77,10 +77,7 @@ export default function Home() {
   const [description, setDescription] = useState("");
   const [reward, setReward] = useState<string>("");
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!selectedId && tasks[0]?.id) setSelectedId(tasks[0].id);
-  }, [tasks, selectedId]);
+  const [selectedId, setSelectedId] = useState<string | null>(() => tasks[0]?.id ?? null);
 
   const selectedTask = tasks.find((t) => t.id === selectedId) ?? null;
 
@@ -107,7 +104,7 @@ export default function Home() {
       rewardHot,
       status: "Open",
       funded: false,
-      createdAt: Date.now(),
+      createdAt: 1700000000000,
     };
 
     setTasks((prev) => [t, ...prev]);
@@ -134,7 +131,7 @@ export default function Home() {
       redirectUrl,
     });
 
-    window.location.href = url;
+    window.location.assign(url);
   }
 
   function releasePayout(task: Task) {
@@ -154,13 +151,13 @@ export default function Home() {
       redirectUrl,
     });
 
-    window.location.href = url;
+    window.location.assign(url);
   }
 
   function openClaimModal() {
     if (!selectedTask) return;
     if (!selectedTask.funded) return alert("Task is not funded yet.");
-    if (!connected) return alert("Connect wallet first (demo toggle).");
+    if (!accountId) return alert("Connect wallet first (demo toggle).");
 
     // Prefill if already claimed (optional)
     setClaimant(selectedTask.claimant ?? "");
@@ -211,10 +208,10 @@ export default function Home() {
           </div>
 
           <button
-            onClick={() => setConnected((v) => !v)}
+            onClick={accountId ? disconnect : connect}
             className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold hover:bg-white/10"
           >
-            {connected ? "Wallet Connected" : "Connect Wallet"}
+            {accountId ? `${accountId.slice(0, 10)}…` : "Connect Wallet"}
           </button>
         </div>
       </header>
@@ -371,9 +368,9 @@ export default function Home() {
                 {!selectedTask.funded && (
                   <button
                     onClick={() => lockHotForTask(selectedTask)}
-                    disabled={!connected}
+                    disabled={!accountId}
                     className="w-full mt-4 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                    title={!connected ? "Connect wallet first (demo toggle)" : ""}
+                    title={!accountId ? "Connect wallet first (demo toggle)" : ""}
                   >
                     Fund escrow (HOT Pay)
                   </button>
@@ -384,7 +381,7 @@ export default function Home() {
                   <button
                     onClick={openClaimModal}
                     disabled={
-                      !connected ||
+                      !accountId ||
                       !selectedTask.funded ||
                       selectedTask.status !== "Open"
                     }
@@ -396,7 +393,7 @@ export default function Home() {
                   <button
                     onClick={submitProof}
                     disabled={
-                      !connected ||
+                      !accountId ||
                       !selectedTask.funded ||
                       selectedTask.status !== "Claimed"
                     }
@@ -408,7 +405,7 @@ export default function Home() {
                   <button
                     onClick={release}
                     disabled={
-                      !connected ||
+                      !accountId ||
                       !selectedTask.funded ||
                       selectedTask.status !== "Submitted"
                     }
