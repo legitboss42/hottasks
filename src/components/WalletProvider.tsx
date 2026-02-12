@@ -1,8 +1,12 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { setupWalletSelector } from "@near-wallet-selector/core";
-import { setupModal } from "@near-wallet-selector/modal-ui";
+import {
+  setupWalletSelector,
+  type WalletSelector,
+  type WalletSelectorState,
+} from "@near-wallet-selector/core";
+import { setupModal, type WalletSelectorModal } from "@near-wallet-selector/modal-ui";
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
 
 type WalletContextType = {
@@ -21,7 +25,10 @@ const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   (typeof window !== "undefined" ? window.location.origin : "");
 
-export async function initWallet() {
+export async function initWallet(): Promise<{
+  selector: WalletSelector;
+  modal: WalletSelectorModal;
+}> {
   const selector = await setupWalletSelector({
     network: "testnet",
     modules: [
@@ -37,8 +44,8 @@ export async function initWallet() {
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [selector, setSelector] = useState<any>(null);
-  const [modal, setModal] = useState<any>(null);
+  const [selector, setSelector] = useState<WalletSelector | null>(null);
+  const [modal, setModal] = useState<WalletSelectorModal | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,11 +56,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setModal(modal);
 
       const state = selector.store.getState();
-      const acc = state.accounts.find((a: any) => a.active);
+      const acc = state.accounts.find((a) => a.active);
       setAccountId(acc?.accountId ?? null);
 
-      selector.store.observable.subscribe((state: any) => {
-        const acc = state.accounts.find((a: any) => a.active);
+      selector.store.observable.subscribe((state: WalletSelectorState) => {
+        const acc = state.accounts.find((a) => a.active);
         setAccountId(acc?.accountId ?? null);
       });
     }
