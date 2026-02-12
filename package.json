@@ -9,7 +9,8 @@
                     "lint":  "eslint",
                     "prisma:generate":  "prisma generate --schema=prisma/schema.prisma",
                     "prisma:push":  "prisma db push --schema=prisma/schema.prisma",
-                    "prisma:studio":  "prisma studio --schema=prisma/schema.prisma"
+                    "prisma:studio":  "prisma studio --schema=prisma/schema.prisma",
+                    "postinstall":  "prisma generate --schema=prisma/schema.prisma"
                 },
     "dependencies":  {
                          "@near-wallet-selector/core":  "^10.1.4",
@@ -31,5 +32,8 @@
                             "eslint-config-next":  "16.1.6",
                             "tailwindcss":  "^4",
                             "typescript":  "^5"
-                        }
+                        },
+    "prisma":  {
+                   "schema":  "prisma/schema.prisma"
+               }
 }
