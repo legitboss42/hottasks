@@ -1,32 +1,35 @@
 {
-  "name": "hottasks",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@near-wallet-selector/core": "^10.1.4",
-    "@near-wallet-selector/modal-ui": "^10.1.4",
-    "@near-wallet-selector/my-near-wallet": "^10.1.4",
-    "@near-wallet-selector/near-wallet": "^8.9.3",
-    "@prisma/client": "^6.5.0",
-    "next": "16.1.6",
-    "prisma": "^6.5.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+    "name":  "hottasks",
+    "version":  "0.1.0",
+    "private":  true,
+    "scripts":  {
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "lint":  "eslint",
+                    "prisma:generate":  "prisma generate --schema=prisma/schema.prisma",
+                    "prisma:push":  "prisma db push --schema=prisma/schema.prisma",
+                    "prisma:studio":  "prisma studio --schema=prisma/schema.prisma"
+                },
+    "dependencies":  {
+                         "@near-wallet-selector/core":  "^10.1.4",
+                         "@near-wallet-selector/modal-ui":  "^10.1.4",
+                         "@near-wallet-selector/my-near-wallet":  "^10.1.4",
+                         "@near-wallet-selector/near-wallet":  "^8.9.3",
+                         "@prisma/client":  "^6.5.0",
+                         "next":  "16.1.6",
+                         "prisma":  "^6.5.0",
+                         "react":  "19.2.3",
+                         "react-dom":  "19.2.3"
+                     },
+    "devDependencies":  {
+                            "@tailwindcss/postcss":  "^4",
+                            "@types/node":  "^20",
+                            "@types/react":  "^19",
+                            "@types/react-dom":  "^19",
+                            "eslint":  "^9",
+                            "eslint-config-next":  "16.1.6",
+                            "tailwindcss":  "^4",
+                            "typescript":  "^5"
+                        }
 }
