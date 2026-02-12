@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HOTTasks
 
-## Getting Started
+Micro‑bounty marketplace demo with an escrow‑style lifecycle:
+**Create → Fund → Claim → Submit → Release**.  
+Built for hackathon demos with a fast, server‑enforced flow and a polished UI.
 
-First, run the development server:
+## Features
+- End‑to‑end lifecycle with server‑side state locks
+- Atomic claim/submit/release transitions
+- Dev funding button for instant testing
+- Seeded demo data when the DB is empty
+- Minimal, “startup‑grade” UI polish with micro‑feedback
 
+## Tech Stack
+- Next.js (App Router)
+- Prisma + PostgreSQL
+- NEAR wallet selector (connect UX)
+
+## Local Setup
+1. Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Create environment files
+- `.env` (used by Prisma CLI)
+- `.env.local` (used by Next.js)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Example:
+```bash
+DATABASE_URL="prisma+postgres://..."
+DIRECT_URL="postgres://..."
+NEXT_PUBLIC_HOTPAY_ITEM_ID="your_item_id"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Sync the database
+```bash
+npx prisma db push
+```
 
-## Learn More
+4. Run the app
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open `http://localhost:3000`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Seed Demo Data
+When the database is empty, the UI auto‑calls `/api/seed` to create demo tasks.  
+You can also seed manually:
+```bash
+curl -X POST http://localhost:3000/api/seed
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
+```bash
+npm run dev
+npm run build
+npm run start
+npm run prisma:generate
+npm run prisma:push
+npm run prisma:studio
+```
 
-## Deploy on Vercel
+## API Routes
+- `GET /api/tasks` – list tasks
+- `POST /api/tasks` – create task
+- `PATCH /api/tasks/[id]` – update task
+- `POST /api/tasks/[id]/fund` – mark funded (dev only)
+- `POST /api/tasks/[id]/claim` – atomic claim
+- `POST /api/tasks/[id]/submit` – submit proof
+- `POST /api/tasks/[id]/release` – release payout (simulated)
+- `POST /api/seed` – seed demo data
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
+- `release` currently simulates payout. Plug in your real HOT Pay call in
+  `app/api/tasks/[id]/release/route.ts`.
+- The dev funding route is for demos; lock it down or remove for production.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+Deploy on Vercel and set the same env vars in the project settings.  
+Prisma runs on `postinstall` and uses `prisma/schema.prisma`.
