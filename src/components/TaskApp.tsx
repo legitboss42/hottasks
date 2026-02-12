@@ -1,7 +1,8 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWallet } from "@/components/WalletProvider";
+import { useRouter } from "next/navigation";
 
 type TaskStatus = "Open" | "Claimed" | "Submitted" | "Released";
 
@@ -32,13 +33,32 @@ function buildHotPayUrl(args: { itemId: string; amount: number; redirectUrl: str
 
 export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   const { accountId, connect, disconnect } = useWallet();
+  const router = useRouter();
 
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [toast, setToast] = useState("");
+  const [loadingAction, setLoadingAction] = useState<{
+    id: string;
+    action: "fund" | "claim" | "submit" | "release";
+  } | null>(null);
 
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [reward, setReward] = useState<string>("");
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 1500);
+  }
+
+  function isLoading(id: string, action: "fund" | "claim" | "submit" | "release") {
+    return loadingAction?.id === id && loadingAction?.action === action;
+  }
 
   async function createTask() {
     const rewardValue = Number(reward);
@@ -96,80 +116,108 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   }
 
   async function claimTask(id: string) {
-    const res = await fetch(`/api/tasks/${id}/claim`, { method: "POST" });
+    setLoadingAction({ id, action: "claim" });
+    try {
+      const res = await fetch(`/api/tasks/${id}/claim`, { method: "POST" });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Claim failed");
-      return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Claim failed");
+        return;
+      }
+
+      showToast("Task claimed");
+      router.refresh();
+    } finally {
+      setLoadingAction(null);
     }
-
-    location.reload(); // simple + reliable for hackathon
   }
 
   async function markFunded(id: string) {
-    await fetch(`/api/tasks/${id}/fund`, { method: "POST" });
-    location.reload();
+    setLoadingAction({ id, action: "fund" });
+    try {
+      await fetch(`/api/tasks/${id}/fund`, { method: "POST" });
+      showToast("Task funded");
+      router.refresh();
+    } finally {
+      setLoadingAction(null);
+    }
   }
 
   async function submitProof(id: string) {
     const proof = prompt("Paste proof link or message:");
     if (!proof) return;
 
-    const res = await fetch(`/api/tasks/${id}/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ proofUrl: proof }),
-    });
+    setLoadingAction({ id, action: "submit" });
+    try {
+      const res = await fetch(`/api/tasks/${id}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proofUrl: proof }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Submit failed");
-      return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Submit failed");
+        return;
+      }
+
+      showToast("Proof submitted");
+      router.refresh();
+    } finally {
+      setLoadingAction(null);
     }
-
-    location.reload();
   }
 
   async function releaseTask(id: string) {
-    const res = await fetch(`/api/tasks/${id}/release`, { method: "POST" });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Release failed");
-      return;
+    setLoadingAction({ id, action: "release" });
+    try {
+      const res = await fetch(`/api/tasks/${id}/release`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Release failed");
+        return;
+      }
+      showToast("Payout released");
+      router.refresh();
+    } finally {
+      setLoadingAction(null);
     }
-    location.reload();
   }
 
   function renderAction(task: Task) {
     if (!task.funded) {
+      const loading = isLoading(task.id, "fund");
       return (
-        <button className="btn" onClick={() => markFunded(task.id)}>
-          Mark funded (dev)
+        <button className="btn" onClick={() => markFunded(task.id)} disabled={loading}>
+          {loading ? "Funding..." : "Mark funded (dev)"}
         </button>
       );
     }
 
     if (task.status === "Open" && !task.claimant) {
+      const loading = isLoading(task.id, "claim");
       return (
-        <button className="btn primary" onClick={() => claimTask(task.id)}>
-          Claim
+        <button className="btn primary" onClick={() => claimTask(task.id)} disabled={loading}>
+          {loading ? "Claiming..." : "Claim"}
         </button>
       );
     }
 
     if (task.status === "Claimed") {
+      const loading = isLoading(task.id, "submit");
       return (
-        <button className="btn" onClick={() => submitProof(task.id)}>
-          Submit proof
+        <button className="btn" onClick={() => submitProof(task.id)} disabled={loading}>
+          {loading ? "Submitting..." : "Submit proof"}
         </button>
       );
     }
 
     if (task.status === "Submitted") {
+      const loading = isLoading(task.id, "release");
       return (
-        <button className="btn" onClick={() => releaseTask(task.id)}>
-          Release payout
+        <button className="btn" onClick={() => releaseTask(task.id)} disabled={loading}>
+          {loading ? "Releasing..." : "Release payout"}
         </button>
       );
     }
@@ -179,21 +227,24 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
 
   return (
     <main className="page">
+      {toast && <div className="toast">{toast}</div>}
       <header className="header">
         <div className="container">
-          <div className="wallet">
-            {accountId ? (
-              <button className="wallet-chip" onClick={disconnect} title="Disconnect">
-                {accountId.slice(0, 6)}…{accountId.slice(-4)}
-              </button>
-            ) : (
-              <button className="btn" onClick={connect}>
-                Connect Wallet
-              </button>
-            )}
+          <div className="header-bar">
+            <h1 className="logo">🔥 HOTTasks</h1>
+            <div className="wallet">
+              {accountId ? (
+                <button className="wallet-chip" onClick={disconnect} title="Disconnect">
+                  {accountId.slice(0, 6)}…{accountId.slice(-4)}
+                </button>
+              ) : (
+                <button className="btn" onClick={connect}>
+                  Connect
+                </button>
+              )}
+            </div>
           </div>
-          <h1>🔥 HOTTasks</h1>
-          <p>Post a small task. Fund escrow. Get it solved instantly.</p>
+          <p className="tagline">Post a small task. Fund escrow. Get it solved instantly.</p>
         </div>
       </header>
 
