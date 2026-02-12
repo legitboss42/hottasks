@@ -155,6 +155,11 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
     location.reload(); // simple + reliable for hackathon
   }
 
+  async function markFunded(id: string) {
+    await fetch(`/api/tasks/${id}/fund`, { method: "POST" });
+    location.reload();
+  }
+
   function submitProof() {
     if (!selectedTask) return;
     if (!selectedTask.funded) return alert("Task is not funded yet.");
@@ -346,6 +351,15 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
                     title={!accountId ? "Connect wallet first (demo toggle)" : ""}
                   >
                     Fund escrow (HOT Pay)
+                  </button>
+                )}
+
+                {!selectedTask.funded && (
+                  <button
+                    onClick={() => markFunded(selectedTask.id)}
+                    className="w-full mt-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+                  >
+                    Mark funded (dev)
                   </button>
                 )}
 
