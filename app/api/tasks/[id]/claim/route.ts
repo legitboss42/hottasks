@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -5,10 +7,13 @@ export async function POST(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // ✅ THIS is the fix
+  const { id } = await context.params;
+
+  // TEMP: replace with real wallet accountId next
+  const claimant = "wallet-user";
 
   try {
-    const updated = await prisma.task.update({
+    const result = await prisma.task.updateMany({
       where: {
         id,
         funded: true,
@@ -17,14 +22,23 @@ export async function POST(
       },
       data: {
         status: "Claimed",
-        claimant: "wallet-user",
+        claimant,
+        claimedAt: new Date(),
       },
     });
 
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "Task cannot be claimed (already claimed or not funded)." },
+        { status: 409 }
+      );
+    }
+
+    const updated = await prisma.task.findUnique({ where: { id } });
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json(
-      { error: "Already claimed or not funded" },
+      { error: "Task cannot be claimed (already claimed or not funded)." },
       { status: 409 }
     );
   }

@@ -147,7 +147,8 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
     const res = await fetch(`/api/tasks/${id}/claim`, { method: "POST" });
 
     if (!res.ok) {
-      alert("Task already claimed or not funded");
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "Claim failed");
       return;
     }
 
@@ -350,7 +351,9 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
 
                 {/* Action buttons */}
                 <div className="mt-4 grid grid-cols-3 gap-2">
-                  {selectedTask.funded && selectedTask.status === "Open" && (
+                  {selectedTask.funded &&
+                    selectedTask.status === "Open" &&
+                    !selectedTask.claimant && (
                     <button
                       onClick={() => claimTask(selectedTask.id)}
                       className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:opacity-90"
