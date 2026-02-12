@@ -23,6 +23,8 @@ model Task {
   status       String   @default("Open")
   claimant     String?
   claimedAt    DateTime?
+  proofUrl     String?
+  submittedAt  DateTime?
   payoutItemId String?
   createdAt    DateTime @default(now())
 }

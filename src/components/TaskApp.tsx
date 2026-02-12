@@ -160,11 +160,23 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
     location.reload();
   }
 
-  function submitProof() {
-    if (!selectedTask) return;
-    if (!selectedTask.funded) return alert("Task is not funded yet.");
-    if (selectedTask.status !== "Claimed") return alert("Task must be Claimed first.");
-    updateTask(selectedTask.id, { status: "Submitted" });
+  async function submitProof(id: string) {
+    const proof = prompt("Paste proof link or message:");
+    if (!proof) return;
+
+    const res = await fetch(`/api/tasks/${id}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proofUrl: proof }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "Submit failed");
+      return;
+    }
+
+    location.reload();
   }
 
   function release() {
@@ -376,13 +388,14 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
                     </button>
                   )}
 
-                  <button
-                    onClick={submitProof}
-                    disabled={!accountId || !selectedTask.funded || selectedTask.status !== "Claimed"}
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Submit
-                  </button>
+                  {selectedTask.status === "Claimed" && (
+                    <button
+                      onClick={() => submitProof(selectedTask.id)}
+                      className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+                    >
+                      Submit proof
+                    </button>
+                  )}
 
                   <button
                     onClick={release}
