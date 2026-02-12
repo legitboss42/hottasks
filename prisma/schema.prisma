@@ -25,6 +25,7 @@ model Task {
   claimedAt    DateTime?
   proofUrl     String?
   submittedAt  DateTime?
+  releasedAt   DateTime?
   payoutItemId String?
   createdAt    DateTime @default(now())
 }

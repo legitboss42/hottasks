@@ -179,12 +179,14 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
     location.reload();
   }
 
-  function release() {
-    if (!selectedTask) return;
-    if (!selectedTask.funded) return alert("Task is not funded yet.");
-    if (selectedTask.status !== "Submitted")
-      return alert("Task must be Submitted before release.");
-    releasePayout(selectedTask);
+  async function releaseTask(id: string) {
+    const res = await fetch(`/api/tasks/${id}/release`, { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "Release failed");
+      return;
+    }
+    location.reload();
   }
 
   return (
@@ -397,13 +399,14 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
                     </button>
                   )}
 
-                  <button
-                    onClick={release}
-                    disabled={!accountId || !selectedTask.funded || selectedTask.status !== "Submitted"}
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Release
-                  </button>
+                  {selectedTask.status === "Submitted" && (
+                    <button
+                      onClick={() => releaseTask(selectedTask.id)}
+                      className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+                    >
+                      Release payout
+                    </button>
+                  )}
                 </div>
 
                 <div className="mt-3 text-xs text-white/55">
