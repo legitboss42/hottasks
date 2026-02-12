@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f9fafb;
-  --foreground: #0f172a;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --card: #ffffff;
-  --accent: #111827;
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #1f2937;
+  --card: #0f172a;
+  --accent: #22c55e;
 }
 
 @theme inline {
@@ -19,7 +19,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: system-ui, sans-serif;
 }
 
 *,
@@ -34,33 +34,42 @@ body {
 
 .container {
   max-width: 720px;
-  margin: 32px auto;
+  margin: 40px auto;
   padding: 0 16px;
+  animation: fadeIn 0.25s ease;
 }
 
-.topbar {
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
+.header {
+  text-align: center;
+  margin-bottom: 32px;
 }
 
-.topbar-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.01em;
 }
 
-.eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.header p {
   color: var(--muted);
+  margin-top: 6px;
+  font-size: 14px;
 }
 
-.title {
-  margin: 4px 0 0;
-  font-size: 20px;
-  font-weight: 600;
+.wallet {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.wallet-chip {
+  background: #111827;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: none;
 }
 
 .section-title {
@@ -88,8 +97,8 @@ body {
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #f3f4f6;
-  color: #374151;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--muted);
   border: 1px solid var(--border);
 }
 
@@ -124,7 +133,7 @@ body {
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 14px;
-  background: #ffffff;
+  background: #0b1629;
   color: var(--foreground);
 }
 
@@ -140,34 +149,50 @@ body {
   flex-wrap: wrap;
 }
 
-.btn {
+button {
   padding: 8px 12px;
   border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.05s ease, opacity 0.1s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.btn {
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: #0b1629;
   color: var(--foreground);
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
 }
 
 .btn.primary {
   background: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
+  border-color: transparent;
+  color: #0b1220;
 }
 
 .task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: block;
 }
 
 .task-card {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
-  background: #ffffff;
+  background: var(--card);
+  margin-bottom: 14px;
+  transition: all 0.15s ease;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
 .task-top {
@@ -212,32 +237,50 @@ body {
   border-radius: 999px;
   font-weight: 600;
   text-transform: capitalize;
+  border: 1px solid transparent;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .badge.open {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.35);
 }
 
 .badge.claimed {
-  background: #fef9c3;
-  color: #854d0e;
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde047;
+  border-color: rgba(250, 204, 21, 0.35);
 }
 
 .badge.submitted {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
 .badge.released {
-  background: #e5e7eb;
-  color: #374151;
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5f5;
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 .empty {
+  text-align: center;
+  padding: 60px 20px;
   color: var(--muted);
-  font-size: 14px;
-  padding: 4px 0;
+}
+
+.empty p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.empty span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
 }
 
 .footer {
@@ -249,4 +292,31 @@ body {
   padding: 16px 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .task-card {
+    padding: 12px;
+  }
+
+  .task-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  button {
+    width: 100%;
+  }
 }

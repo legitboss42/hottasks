@@ -179,16 +179,21 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
 
   return (
     <main className="page">
-      <header className="topbar">
-        <div className="container topbar-inner">
-          <div>
-            <div className="eyebrow">NEAR · HOT Pay</div>
-            <h1 className="title">HOTTasks</h1>
+      <header className="header">
+        <div className="container">
+          <div className="wallet">
+            {accountId ? (
+              <button className="wallet-chip" onClick={disconnect} title="Disconnect">
+                {accountId.slice(0, 6)}…{accountId.slice(-4)}
+              </button>
+            ) : (
+              <button className="btn" onClick={connect}>
+                Connect Wallet
+              </button>
+            )}
           </div>
-
-          <button className="btn" onClick={accountId ? disconnect : connect}>
-            {accountId ? `${accountId.slice(0, 10)}…` : "Connect Wallet"}
-          </button>
+          <h1>🔥 HOTTasks</h1>
+          <p>Post a small task. Fund escrow. Get it solved instantly.</p>
         </div>
       </header>
 
@@ -246,7 +251,12 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           </div>
 
           <div className="task-list">
-            {tasks.length === 0 && <div className="empty">No tasks yet.</div>}
+            {tasks.length === 0 && (
+              <div className="empty">
+                <p>No tasks yet</p>
+                <span>Create the first bounty to get started</span>
+              </div>
+            )}
             {tasks.map((task) => (
               <div key={task.id} className="task-card">
                 <div className="task-top">
