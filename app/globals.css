@@ -39,18 +39,20 @@ body {
   animation: fadeIn 0.25s ease;
 }
 
-.header {
-  margin-bottom: 28px;
+.hero {
+  text-align: center;
+  margin-bottom: 36px;
 }
 
 .header-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 8px;
 }
 
 .logo {
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 700;
   margin: 0;
 }
@@ -103,6 +105,21 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+}
+
+.stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+.stats strong {
+  display: block;
+  font-size: 18px;
+  color: var(--foreground);
 }
 
 .pill {

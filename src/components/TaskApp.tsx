@@ -51,6 +51,16 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
     setTasks(initialTasks);
   }, [initialTasks]);
 
+  useEffect(() => {
+    if (initialTasks.length > 0) return;
+    fetch("/api/seed", { method: "POST" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.seeded) router.refresh();
+      })
+      .catch(() => null);
+  }, [initialTasks.length, router]);
+
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 1500);
@@ -228,7 +238,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   return (
     <main className="page">
       {toast && <div className="toast">{toast}</div>}
-      <header className="header">
+      <header className="hero">
         <div className="container">
           <div className="header-bar">
             <h1 className="logo">🔥 HOTTasks</h1>
@@ -299,6 +309,21 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           <div className="panel-header">
             <h2 className="section-title">Tasks</h2>
             <span className="pill">{tasks.length} total</span>
+          </div>
+
+          <div className="stats">
+            <div>
+              <strong>{tasks.length}</strong>
+              <span>Total</span>
+            </div>
+            <div>
+              <strong>{tasks.filter((t) => t.funded).length}</strong>
+              <span>Funded</span>
+            </div>
+            <div>
+              <strong>{tasks.filter((t) => t.status === "Open").length}</strong>
+              <span>Open</span>
+            </div>
           </div>
 
           <div className="task-list">
