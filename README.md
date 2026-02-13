@@ -7,7 +7,7 @@ Built for hackathon demos with a fast, server‑enforced flow and a polished UI.
 ## Features
 - End‑to‑end lifecycle with server‑side state locks
 - Atomic claim/submit/release transitions
-- Dev funding button for instant testing
+- Funding tied to creator wallet plus transaction hash
 - Seeded demo data when the DB is empty
 - Minimal, “startup‑grade” UI polish with micro‑feedback
 
@@ -67,7 +67,7 @@ npm run prisma:studio
 - `GET /api/tasks` – list tasks
 - `POST /api/tasks` – create task
 - `PATCH /api/tasks/[id]` – update task
-- `POST /api/tasks/[id]/fund` – mark funded (dev only)
+- `POST /api/tasks/[id]/fund` – creator-only funding with `txHash`
 - `POST /api/tasks/[id]/claim` – atomic claim
 - `POST /api/tasks/[id]/submit` – submit proof
 - `POST /api/tasks/[id]/release` – release payout (simulated)
@@ -76,7 +76,7 @@ npm run prisma:studio
 ## Notes
 - `release` currently simulates payout. Plug in your real HOT Pay call in
   `app/api/tasks/[id]/release/route.ts`.
-- The dev funding route is for demos; lock it down or remove for production.
+- `funded` is set only via `/api/tasks/[id]/fund` after creator identity and tx hash.
 
 ## Deployment
 Deploy on Vercel and set the same env vars in the project settings.  

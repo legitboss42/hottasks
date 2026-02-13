@@ -1,19 +1,21 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { useWallet } from "@/components/WalletProvider";
+import ConnectWallet from "@/components/ConnectWallet";
 import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
 
-type TaskStatus = "OPEN" | "CLAIMED" | "SUBMITTED" | "RELEASED";
+type CanonicalTaskStatus = "OPEN" | "CLAIMED" | "SUBMITTED" | "RELEASED";
 
 type Task = {
   id: string;
   title: string;
   description: string;
   reward: number;
-  status: TaskStatus;
+  status: string;
   creator: string;
   funded?: boolean;
+  txHash?: string | null;
   claimant?: string | null;
   payoutItemId?: string | null;
   createdAt: number;
@@ -24,20 +26,27 @@ function formatHot(n: number) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
 }
 
-function prettyStatus(status: TaskStatus) {
+function normalizeStatus(status: string | null | undefined): CanonicalTaskStatus {
+  const upper = (status ?? "").toUpperCase();
+  if (upper === "OPEN" || upper === "CLAIMED" || upper === "SUBMITTED" || upper === "RELEASED") {
+    return upper;
+  }
+  return "OPEN";
+}
+
+function taskStatus(task: Pick<Task, "status" | "claimant">): CanonicalTaskStatus {
+  const normalized = normalizeStatus(task.status);
+  // Handle legacy rows where claimant exists but status was stored as "Open".
+  if (normalized === "OPEN" && task.claimant) return "CLAIMED";
+  return normalized;
+}
+
+function prettyStatus(status: CanonicalTaskStatus) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
-function buildHotPayUrl(args: { itemId: string; amount: number; redirectUrl: string }) {
-  const u = new URL("https://pay.hot-labs.org/payment");
-  u.searchParams.set("item_id", args.itemId);
-  u.searchParams.set("amount", String(args.amount));
-  u.searchParams.set("redirect_url", args.redirectUrl);
-  return u.toString();
-}
-
 export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
-  const { accountId, connect, disconnect } = useWallet();
+  const { address, isConnected } = useAccount();
   const router = useRouter();
 
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -57,14 +66,14 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   }, [initialTasks]);
 
   useEffect(() => {
-    if (!accountId) {
+    if (!isConnected || !address) {
       setTasks(initialTasks);
       return;
     }
     fetch("/api/tasks/mine", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ walletAddress: accountId }),
+      body: JSON.stringify({ walletAddress: address }),
     })
       .then((res) => (res.ok ? res.json() : []))
       .then((mineTasks: Task[]) => {
@@ -75,7 +84,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
         );
       })
       .catch(() => null);
-  }, [accountId, initialTasks]);
+  }, [address, initialTasks, isConnected]);
 
   useEffect(() => {
     if (initialTasks.length > 0) return;
@@ -97,7 +106,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   }
 
   async function createTask() {
-    if (!accountId) {
+    if (!isConnected || !address) {
       alert("Connect your wallet to create a task.");
       return;
     }
@@ -116,7 +125,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           title: title.trim(),
           description: description.trim(),
           reward: rewardValue,
-          walletAddress: accountId,
+          walletAddress: address,
         }),
       });
 
@@ -131,30 +140,10 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
       setTitle("");
       setDescription("");
       setReward("");
-
-      // Smooth demo: immediately fund after create
-      lockHotForTask(created);
+      showToast("Task created");
     } catch {
       alert("Failed to create task.");
     }
-  }
-
-  function lockHotForTask(task: Task) {
-    const itemId = process.env.NEXT_PUBLIC_HOTPAY_ITEM_ID;
-    if (!itemId) return alert("Missing NEXT_PUBLIC_HOTPAY_ITEM_ID in .env.local");
-
-    const redirect = new URL("/pay/success", window.location.origin);
-    redirect.searchParams.set("taskId", task.id);
-    redirect.searchParams.set("payoutItemId", itemId);
-    const redirectUrl = redirect.toString();
-
-    const url = buildHotPayUrl({
-      itemId,
-      amount: task.reward,
-      redirectUrl,
-    });
-
-    window.location.assign(url);
   }
 
   async function claimTask(id: string) {
@@ -175,10 +164,32 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
     }
   }
 
-  async function markFunded(id: string) {
-    setLoadingAction({ id, action: "fund" });
+  async function fundTask(task: Task) {
+    if (!isConnected || !address) {
+      alert("Connect your wallet first.");
+      return;
+    }
+
+    const txHash = prompt("Paste funding transaction hash:");
+    if (!txHash) return;
+
+    setLoadingAction({ id: task.id, action: "fund" });
     try {
-      await fetch(`/api/tasks/${id}/fund`, { method: "POST" });
+      const res = await fetch(`/api/tasks/${task.id}/fund`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          txHash: txHash.trim(),
+          walletAddress: address,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Funding failed");
+        return;
+      }
+
       showToast("Task funded");
       router.refresh();
     } finally {
@@ -228,16 +239,23 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   }
 
   function renderAction(task: Task) {
+    const status = taskStatus(task);
+
     if (!task.funded) {
       const loading = isLoading(task.id, "fund");
+
+      if (!address || address.toLowerCase() !== task.creator.toLowerCase()) {
+        return <span className="hint">Waiting for creator funding</span>;
+      }
+
       return (
-        <button className="btn" onClick={() => markFunded(task.id)} disabled={loading}>
-          {loading ? "Funding..." : "Mark funded (dev)"}
+        <button className="btn" onClick={() => fundTask(task)} disabled={loading}>
+          {loading ? "Funding..." : "Fund task"}
         </button>
       );
     }
 
-    if (task.status === "OPEN" && !task.claimant) {
+    if (status === "OPEN" && !task.claimant) {
       const loading = isLoading(task.id, "claim");
       return (
         <button className="btn primary" onClick={() => claimTask(task.id)} disabled={loading}>
@@ -246,7 +264,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
       );
     }
 
-    if (task.status === "CLAIMED") {
+    if (status === "CLAIMED") {
       const loading = isLoading(task.id, "submit");
       return (
         <button className="btn" onClick={() => submitProof(task.id)} disabled={loading}>
@@ -255,7 +273,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
       );
     }
 
-    if (task.status === "SUBMITTED") {
+    if (status === "SUBMITTED") {
       const loading = isLoading(task.id, "release");
       return (
         <button className="btn" onClick={() => releaseTask(task.id)} disabled={loading}>
@@ -275,15 +293,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           <div className="header-bar">
             <h1 className="logo">🔥 HOTTasks</h1>
             <div className="wallet">
-              {accountId ? (
-                <button className="wallet-chip" onClick={disconnect} title="Disconnect">
-                  {accountId.slice(0, 6)}…{accountId.slice(-4)}
-                </button>
-              ) : (
-                <button className="btn" onClick={connect}>
-                  Connect
-                </button>
-              )}
+              <ConnectWallet />
             </div>
           </div>
           <p className="tagline">Post a small task. Fund escrow. Get it solved instantly.</p>
@@ -295,7 +305,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           <h2 className="section-title">Create a task</h2>
           <p className="muted">Post a task, fund escrow, and let someone claim it.</p>
 
-          {accountId ? (
+          {isConnected ? (
             <>
               <div className="form-grid">
                 <div>
@@ -333,17 +343,13 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
 
               <div className="actions-row">
                 <button className="btn primary" onClick={createTask}>
-                  Create & Fund
+                  Create task
                 </button>
-                <span className="hint">Demo escrow for hackathon testing.</span>
+                <span className="hint">Funding requires a transaction hash.</span>
               </div>
             </>
           ) : (
-            <div className="actions-row">
-              <button className="btn" onClick={connect}>
-                Connect wallet to create tasks
-              </button>
-            </div>
+            <p className="muted">Connect wallet to create a task.</p>
           )}
         </section>
 
@@ -363,7 +369,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
               <span>Funded</span>
             </div>
             <div>
-              <strong>{tasks.filter((t) => t.status === "OPEN").length}</strong>
+              <strong>{tasks.filter((t) => taskStatus(t) === "OPEN").length}</strong>
               <span>Open</span>
             </div>
           </div>
@@ -375,27 +381,30 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
                 <span>Create the first bounty to get started</span>
               </div>
             )}
-            {tasks.map((task) => (
-              <div key={task.id} className="task-card">
-                <div className="task-top">
-                  <h3 className="task-title">{task.title}</h3>
-                  <span className={`badge ${task.status.toLowerCase()}`}>
-                    {prettyStatus(task.status)}
-                  </span>
+            {tasks.map((task) => {
+              const status = taskStatus(task);
+              return (
+                <div key={task.id} className="task-card">
+                  <div className="task-top">
+                    <h3 className="task-title">{task.title}</h3>
+                    <span className={`badge ${status.toLowerCase()}`}>
+                      {prettyStatus(status)}
+                    </span>
+                  </div>
+
+                  <p className="desc">{task.description}</p>
+
+                  {task.claimant && (
+                    <div className="meta">Claimed by {task.claimant}</div>
+                  )}
+
+                  <div className="task-bottom">
+                    <strong className="reward">{formatHot(task.reward)} HOT</strong>
+                    {renderAction(task)}
+                  </div>
                 </div>
-
-                <p className="desc">{task.description}</p>
-
-                {task.claimant && (
-                  <div className="meta">Claimed by {task.claimant}</div>
-                )}
-
-                <div className="task-bottom">
-                  <strong className="reward">{formatHot(task.reward)} HOT</strong>
-                  {renderAction(task)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </div>

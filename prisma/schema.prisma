@@ -27,6 +27,7 @@ model Task {
   description  String
   reward       Int
   funded       Boolean    @default(false)
+  txHash       String?
   status       TaskStatus @default(OPEN)
   creator      String
   claimant     String?

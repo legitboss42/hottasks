@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { WalletProvider } from "@/components/WalletProvider";
-import "@near-wallet-selector/modal-ui/styles.css";
+import { Web3Providers } from "@/components/Web3Providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,7 +28,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <WalletProvider>{children}</WalletProvider>
+        <Web3Providers>{children}</Web3Providers>
       </body>
     </html>
   );

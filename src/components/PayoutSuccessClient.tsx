@@ -1,18 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 
-export default function PayoutSuccessClient({ taskId }: { taskId: string | null }) {
-  useEffect(() => {
-    if (!taskId) return;
-    void fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "Released" }),
-    });
-  }, [taskId]);
-
+export default function PayoutSuccessClient() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-white">
       <div className="text-center">

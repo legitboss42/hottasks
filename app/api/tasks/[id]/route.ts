@@ -18,14 +18,19 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+    if (typeof body.funded === "boolean") {
+      return NextResponse.json(
+        { error: "Use /api/tasks/[id]/fund for funding updates." },
+        { status: 400 }
+      );
+    }
+
     const data: {
-      funded?: boolean;
       status?: (typeof validStatuses)[number];
       claimant?: string | null;
       payoutItemId?: string | null;
     } = {};
 
-    if (typeof body.funded === "boolean") data.funded = body.funded;
     if (typeof body.status === "string" && validStatuses.includes(body.status)) {
       data.status = body.status;
     }

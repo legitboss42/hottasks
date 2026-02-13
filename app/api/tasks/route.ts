@@ -2,9 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Task } from "@prisma/client";
 
+const validStatuses = new Set(["OPEN", "CLAIMED", "SUBMITTED", "RELEASED"]);
+
+function normalizeStatus(status: unknown) {
+  const upper = String(status ?? "").toUpperCase();
+  return validStatuses.has(upper) ? upper : "OPEN";
+}
+
 function serialize(task: Task) {
   return {
     ...task,
+    status: normalizeStatus(task.status),
     createdAt: task.createdAt instanceof Date ? task.createdAt.getTime() : task.createdAt,
   };
 }

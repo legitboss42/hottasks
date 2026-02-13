@@ -7,6 +7,11 @@ export const dynamic = "force-dynamic";
 const validStatuses = ["OPEN", "CLAIMED", "SUBMITTED", "RELEASED"] as const;
 type TaskStatus = (typeof validStatuses)[number];
 
+function normalizeStatus(status: unknown): TaskStatus {
+  const upper = String(status ?? "").toUpperCase();
+  return (validStatuses as readonly string[]).includes(upper) ? (upper as TaskStatus) : "OPEN";
+}
+
 type Task = {
   id: string;
   title: string;
@@ -31,9 +36,7 @@ export default async function Home() {
     title: t.title,
     description: t.description,
     reward: t.reward,
-    status: (validStatuses as readonly string[]).includes(t.status)
-      ? (t.status as TaskStatus)
-      : "OPEN",
+    status: normalizeStatus(t.status),
     funded: t.funded,
     creator: t.creator,
     claimant: t.claimant,
