@@ -14,18 +14,26 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum TaskStatus {
+  OPEN
+  CLAIMED
+  SUBMITTED
+  RELEASED
+}
+
 model Task {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   title        String
   description  String
   reward       Int
-  funded       Boolean  @default(false)
-  status       String   @default("Open")
+  funded       Boolean    @default(false)
+  status       TaskStatus @default(OPEN)
+  creator      String
   claimant     String?
   claimedAt    DateTime?
   proofUrl     String?
   submittedAt  DateTime?
   releasedAt   DateTime?
   payoutItemId String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime   @default(now())
 }

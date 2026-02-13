@@ -11,6 +11,7 @@ function serialize(task: Task) {
 
 export async function GET() {
   const tasks = await prisma.task.findMany({
+    where: { funded: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -23,6 +24,12 @@ export async function POST(request: Request) {
     const title = typeof body.title === "string" ? body.title.trim() : "";
     const description = typeof body.description === "string" ? body.description.trim() : "";
     const rewardRaw = Number(body.reward);
+    const walletAddress =
+      typeof body.walletAddress === "string" ? body.walletAddress.trim() : "";
+
+    if (!walletAddress) {
+      return NextResponse.json({ error: "Wallet connection required" }, { status: 401 });
+    }
 
     if (!title) {
       return NextResponse.json({ error: "Title is required." }, { status: 400 });
@@ -43,7 +50,8 @@ export async function POST(request: Request) {
         title,
         description,
         reward,
-        status: "Open",
+        status: "OPEN",
+        creator: walletAddress,
         funded: false,
       },
     });

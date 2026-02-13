@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Task } from "@prisma/client";
 
-const validStatuses = ["Open", "Claimed", "Submitted", "Released"] as const;
+const validStatuses = ["OPEN", "CLAIMED", "SUBMITTED", "RELEASED"] as const;
 
 function serialize(task: Task) {
   return {

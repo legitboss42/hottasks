@@ -17,11 +17,11 @@ export async function POST(
       where: {
         id,
         funded: true,
-        status: "Open",
+        status: "OPEN",
         claimant: null,
       },
       data: {
-        status: "Claimed",
+        status: "CLAIMED",
         claimant,
         claimedAt: new Date(),
       },

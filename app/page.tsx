@@ -4,7 +4,7 @@ import type { Task as DbTask } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const validStatuses = ["Open", "Claimed", "Submitted", "Released"] as const;
+const validStatuses = ["OPEN", "CLAIMED", "SUBMITTED", "RELEASED"] as const;
 type TaskStatus = (typeof validStatuses)[number];
 
 type Task = {
@@ -14,6 +14,7 @@ type Task = {
   reward: number;
   status: TaskStatus;
   funded: boolean;
+  creator: string;
   claimant: string | null;
   payoutItemId: string | null;
   createdAt: number;
@@ -21,6 +22,7 @@ type Task = {
 
 export default async function Home() {
   const tasks = await prisma.task.findMany({
+    where: { funded: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -31,8 +33,9 @@ export default async function Home() {
     reward: t.reward,
     status: (validStatuses as readonly string[]).includes(t.status)
       ? (t.status as TaskStatus)
-      : "Open",
+      : "OPEN",
     funded: t.funded,
+    creator: t.creator,
     claimant: t.claimant,
     payoutItemId: t.payoutItemId,
     createdAt: t.createdAt.getTime(),

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@/components/WalletProvider";
 import { useRouter } from "next/navigation";
 
-type TaskStatus = "Open" | "Claimed" | "Submitted" | "Released";
+type TaskStatus = "OPEN" | "CLAIMED" | "SUBMITTED" | "RELEASED";
 
 type Task = {
   id: string;
@@ -12,6 +12,7 @@ type Task = {
   description: string;
   reward: number;
   status: TaskStatus;
+  creator: string;
   funded?: boolean;
   claimant?: string | null;
   payoutItemId?: string | null;
@@ -21,6 +22,10 @@ type Task = {
 function formatHot(n: number) {
   if (Number.isNaN(n)) return "0";
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
+}
+
+function prettyStatus(status: TaskStatus) {
+  return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 function buildHotPayUrl(args: { itemId: string; amount: number; redirectUrl: string }) {
@@ -52,6 +57,27 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   }, [initialTasks]);
 
   useEffect(() => {
+    if (!accountId) {
+      setTasks(initialTasks);
+      return;
+    }
+    fetch("/api/tasks/mine", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ walletAddress: accountId }),
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((mineTasks: Task[]) => {
+        const merged = new Map(initialTasks.map((task) => [task.id, task]));
+        for (const task of mineTasks) merged.set(task.id, task);
+        setTasks(
+          Array.from(merged.values()).sort((a, b) => b.createdAt - a.createdAt)
+        );
+      })
+      .catch(() => null);
+  }, [accountId, initialTasks]);
+
+  useEffect(() => {
     if (initialTasks.length > 0) return;
     fetch("/api/seed", { method: "POST" })
       .then((res) => res.json())
@@ -71,6 +97,11 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
   }
 
   async function createTask() {
+    if (!accountId) {
+      alert("Connect your wallet to create a task.");
+      return;
+    }
+
     const rewardValue = Number(reward);
     if (!title.trim()) return alert("Add a task title.");
     if (!description.trim()) return alert("Add a description.");
@@ -85,6 +116,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           title: title.trim(),
           description: description.trim(),
           reward: rewardValue,
+          walletAddress: accountId,
         }),
       });
 
@@ -205,7 +237,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
       );
     }
 
-    if (task.status === "Open" && !task.claimant) {
+    if (task.status === "OPEN" && !task.claimant) {
       const loading = isLoading(task.id, "claim");
       return (
         <button className="btn primary" onClick={() => claimTask(task.id)} disabled={loading}>
@@ -214,7 +246,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
       );
     }
 
-    if (task.status === "Claimed") {
+    if (task.status === "CLAIMED") {
       const loading = isLoading(task.id, "submit");
       return (
         <button className="btn" onClick={() => submitProof(task.id)} disabled={loading}>
@@ -223,7 +255,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
       );
     }
 
-    if (task.status === "Submitted") {
+    if (task.status === "SUBMITTED") {
       const loading = isLoading(task.id, "release");
       return (
         <button className="btn" onClick={() => releaseTask(task.id)} disabled={loading}>
@@ -263,46 +295,56 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
           <h2 className="section-title">Create a task</h2>
           <p className="muted">Post a task, fund escrow, and let someone claim it.</p>
 
-          <div className="form-grid">
-            <div>
-              <label className="label">Title</label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="input"
-                placeholder="Fix a UI bug on my landing page"
-              />
-            </div>
+          {accountId ? (
+            <>
+              <div className="form-grid">
+                <div>
+                  <label className="label">Title</label>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="input"
+                    placeholder="Fix a UI bug on my landing page"
+                  />
+                </div>
 
-            <div>
-              <label className="label">Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="textarea"
-                placeholder="What needs to be done? What proof do you need?"
-                rows={4}
-              />
-            </div>
+                <div>
+                  <label className="label">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="textarea"
+                    placeholder="What needs to be done? What proof do you need?"
+                    rows={4}
+                  />
+                </div>
 
-            <div>
-              <label className="label">Reward</label>
-              <input
-                value={reward}
-                onChange={(e) => setReward(e.target.value)}
-                className="input"
-                placeholder="55"
-                inputMode="decimal"
-              />
-            </div>
-          </div>
+                <div>
+                  <label className="label">Reward</label>
+                  <input
+                    value={reward}
+                    onChange={(e) => setReward(e.target.value)}
+                    className="input"
+                    placeholder="55"
+                    inputMode="decimal"
+                  />
+                </div>
+              </div>
 
-          <div className="actions-row">
-            <button className="btn primary" onClick={createTask}>
-              Create & Fund
-            </button>
-            <span className="hint">Demo escrow for hackathon testing.</span>
-          </div>
+              <div className="actions-row">
+                <button className="btn primary" onClick={createTask}>
+                  Create & Fund
+                </button>
+                <span className="hint">Demo escrow for hackathon testing.</span>
+              </div>
+            </>
+          ) : (
+            <div className="actions-row">
+              <button className="btn" onClick={connect}>
+                Connect wallet to create tasks
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="panel">
@@ -321,7 +363,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
               <span>Funded</span>
             </div>
             <div>
-              <strong>{tasks.filter((t) => t.status === "Open").length}</strong>
+              <strong>{tasks.filter((t) => t.status === "OPEN").length}</strong>
               <span>Open</span>
             </div>
           </div>
@@ -338,7 +380,7 @@ export default function TaskApp({ initialTasks }: { initialTasks: Task[] }) {
                 <div className="task-top">
                   <h3 className="task-title">{task.title}</h3>
                   <span className={`badge ${task.status.toLowerCase()}`}>
-                    {task.status}
+                    {prettyStatus(task.status)}
                   </span>
                 </div>
 

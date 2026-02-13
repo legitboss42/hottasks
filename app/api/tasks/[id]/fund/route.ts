@@ -11,7 +11,7 @@ export async function POST(
 
   const updated = await prisma.task.update({
     where: { id },
-    data: { funded: true, status: "Open" },
+    data: { funded: true, status: "OPEN" },
   });
 
   return NextResponse.json(updated);

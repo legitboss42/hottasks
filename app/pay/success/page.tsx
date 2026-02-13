@@ -23,7 +23,7 @@ export default async function Success({
       data: {
         funded: true,
         payoutItemId,
-        status: "Open",
+        status: "OPEN",
       },
     });
   }

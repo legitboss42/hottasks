@@ -18,10 +18,10 @@ export async function POST(
   const result = await prisma.task.updateMany({
     where: {
       id,
-      status: "Claimed",
+      status: "CLAIMED",
     },
     data: {
-      status: "Submitted",
+      status: "SUBMITTED",
       proofUrl,
       submittedAt: new Date(),
     },

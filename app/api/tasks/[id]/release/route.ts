@@ -14,10 +14,10 @@ export async function POST(
   const result = await prisma.task.updateMany({
     where: {
       id,
-      status: "Submitted",
+      status: "SUBMITTED",
     },
     data: {
-      status: "Released",
+      status: "RELEASED",
       releasedAt: new Date(),
     },
   });
