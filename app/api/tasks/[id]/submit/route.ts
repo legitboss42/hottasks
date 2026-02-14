@@ -2,12 +2,19 @@ export const runtime = "nodejs";
 
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { readWalletHeaderFromRequest } from "@/lib/auth";
 
 export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const wallet = readWalletHeaderFromRequest(req);
+
+  if (!wallet) {
+    return NextResponse.json({ error: "Wallet required" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const proofUrl = typeof body?.proofUrl === "string" ? body.proofUrl.trim() : "";
 
@@ -19,6 +26,7 @@ export async function POST(
     where: {
       id,
       status: "CLAIMED",
+      claimant: wallet,
     },
     data: {
       status: "SUBMITTED",

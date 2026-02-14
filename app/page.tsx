@@ -1,6 +1,8 @@
 import TaskApp from "@/components/TaskApp";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 import type { Task as DbTask } from "@prisma/client";
+import { readWalletAddressFromCookieStore } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +28,15 @@ type Task = {
 };
 
 export default async function Home() {
+  const cookieStore = await cookies();
+  const wallet = readWalletAddressFromCookieStore(cookieStore) ?? "";
+
   const tasks = await prisma.task.findMany({
-    where: { funded: true },
+    where: wallet
+      ? {
+          OR: [{ funded: true }, { creator: wallet }],
+        }
+      : { funded: true },
     orderBy: { createdAt: "desc" },
   });
 

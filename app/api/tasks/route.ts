@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Task } from "@prisma/client";
+import { readWalletHeaderFromRequest } from "@/lib/auth";
 
 const validStatuses = new Set(["OPEN", "CLAIMED", "SUBMITTED", "RELEASED"]);
 
@@ -17,9 +18,15 @@ function serialize(task: Task) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const wallet = readWalletHeaderFromRequest(request);
+
   const tasks = await prisma.task.findMany({
-    where: { funded: true },
+    where: wallet
+      ? {
+          OR: [{ funded: true }, { creator: wallet }],
+        }
+      : { funded: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -28,16 +35,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const wallet = readWalletHeaderFromRequest(request);
+
+    if (!wallet) {
+      return NextResponse.json({ error: "Wallet required" }, { status: 401 });
+    }
+
     const body = await request.json();
     const title = typeof body.title === "string" ? body.title.trim() : "";
     const description = typeof body.description === "string" ? body.description.trim() : "";
     const rewardRaw = Number(body.reward);
-    const walletAddress =
-      typeof body.walletAddress === "string" ? body.walletAddress.trim() : "";
-
-    if (!walletAddress) {
-      return NextResponse.json({ error: "Wallet connection required" }, { status: 401 });
-    }
 
     if (!title) {
       return NextResponse.json({ error: "Title is required." }, { status: 400 });
@@ -59,7 +66,7 @@ export async function POST(request: Request) {
         description,
         reward,
         status: "OPEN",
-        creator: walletAddress,
+        creator: wallet,
         funded: false,
       },
     });

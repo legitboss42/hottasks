@@ -2,24 +2,29 @@ export const runtime = "nodejs";
 
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { readWalletHeaderFromRequest } from "@/lib/auth";
 
 export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const walletAddress = readWalletHeaderFromRequest(req);
+
+  if (!walletAddress) {
+    return NextResponse.json({ error: "Wallet required" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const txHash = typeof body?.txHash === "string" ? body.txHash.trim() : "";
-  const walletAddress =
-    typeof body?.walletAddress === "string" ? body.walletAddress.trim() : "";
 
-  if (!txHash || !walletAddress) {
+  if (!txHash) {
     return NextResponse.json({ error: "Missing data" }, { status: 400 });
   }
 
   const task = await prisma.task.findUnique({ where: { id } });
 
-  if (!task || task.creator !== walletAddress) {
+  if (!task || task.creator.toLowerCase() !== walletAddress.toLowerCase()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

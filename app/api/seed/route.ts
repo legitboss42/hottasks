@@ -2,8 +2,14 @@ export const runtime = "nodejs";
 
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { readWalletHeaderFromRequest } from "@/lib/auth";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const wallet = readWalletHeaderFromRequest(req);
+  if (!wallet) {
+    return NextResponse.json({ error: "Wallet required" }, { status: 401 });
+  }
+
   const count = await prisma.task.count();
 
   if (count > 0) {

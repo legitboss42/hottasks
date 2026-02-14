@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import type { Task } from "@prisma/client";
+import { readWalletHeaderFromRequest } from "@/lib/auth";
 
 const validStatuses = new Set(["OPEN", "CLAIMED", "SUBMITTED", "RELEASED"]);
 
@@ -20,9 +21,7 @@ function serialize(task: Task) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const walletAddress =
-    typeof body?.walletAddress === "string" ? body.walletAddress.trim() : "";
+  const walletAddress = readWalletHeaderFromRequest(req);
 
   if (!walletAddress) {
     return NextResponse.json({ error: "Wallet required" }, { status: 401 });
