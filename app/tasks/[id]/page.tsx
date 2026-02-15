@@ -129,6 +129,7 @@ export default async function TaskDetailPage({
               status={effectiveStatus}
               claimant={task.claimant}
               creator={task.creator}
+              reward={task.reward}
             />
             <Link href="/" className="btn open-task-link">
               Back

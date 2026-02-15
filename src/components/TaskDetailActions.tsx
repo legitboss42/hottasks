@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import ConnectWallet from "@/components/ConnectWallet";
+import { buildHotPayPaymentUrl } from "@/lib/hotpay";
 
 type TaskStatus = "OPEN" | "CLAIMED" | "SUBMITTED" | "RELEASED";
 
@@ -13,6 +14,7 @@ type TaskDetailActionsProps = {
   status: TaskStatus;
   claimant: string | null;
   creator: string;
+  reward: number;
 };
 
 export default function TaskDetailActions({
@@ -21,6 +23,7 @@ export default function TaskDetailActions({
   status,
   claimant,
   creator,
+  reward,
 }: TaskDetailActionsProps) {
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -30,32 +33,47 @@ export default function TaskDetailActions({
   const isOpenUnclaimed = status === "OPEN" && !claimant;
   const isClaimable = funded && status === "OPEN" && !claimant;
 
-  async function fundTask() {
+  async function fundTask(taskId: string, amount: number) {
     if (!isConnected || !address || !isCreator) return;
 
-    const txHash = prompt("Paste funding transaction hash:");
-    if (!txHash) return;
+    const itemId = process.env.NEXT_PUBLIC_HOTPAY_ITEM_ID?.trim() ?? "";
+    if (!itemId) {
+      alert("Missing NEXT_PUBLIC_HOTPAY_ITEM_ID in .env.local");
+      return;
+    }
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "";
+    if (!appUrl) {
+      alert("Missing NEXT_PUBLIC_APP_URL in .env.local");
+      return;
+    }
+    const normalizedAppUrl = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(appUrl)
+      ? appUrl
+      : `https://${appUrl}`;
 
     setLoading("fund");
     try {
-      const res = await fetch(`/api/tasks/${id}/fund`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet": address,
-        },
-        body: JSON.stringify({
-          txHash: txHash.trim(),
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error ?? "Funding failed.");
+      const baseUrl = new URL(normalizedAppUrl);
+      const host = baseUrl.hostname.toLowerCase();
+      if (host === "localhost" || host === "127.0.0.1") {
+        alert("NEXT_PUBLIC_APP_URL must be a public domain whitelisted in HotPay item settings.");
         return;
       }
-
-      router.refresh();
+      const redirectUrl = new URL(
+        `/pay/success?task_id=${encodeURIComponent(taskId)}`,
+        baseUrl
+      ).toString();
+      const hotPayUrl = buildHotPayPaymentUrl({
+        itemId,
+        amount,
+        redirectUrl,
+      });
+      window.location.href = hotPayUrl;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to open HOT Pay. Check NEXT_PUBLIC_APP_URL format.";
+      alert(message);
     } finally {
       setLoading(null);
     }
@@ -138,8 +156,12 @@ export default function TaskDetailActions({
     if (isConnected && isCreator) {
       return (
         <div className="actions-row">
-          <button className="btn primary" onClick={fundTask} disabled={loading === "fund" || loading === "cancel"}>
-            {loading === "fund" ? "Funding..." : "Fund task"}
+          <button
+            className="btn primary"
+            onClick={() => fundTask(id, reward)}
+            disabled={loading === "fund" || loading === "cancel"}
+          >
+            {loading === "fund" ? "Funding..." : "Fund"}
           </button>
           <button className="btn danger" onClick={cancelTask} disabled={loading === "fund" || loading === "cancel"}>
             {loading === "cancel" ? "Canceling..." : "Cancel task"}

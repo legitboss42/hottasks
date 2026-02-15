@@ -22,11 +22,9 @@ export async function GET(request: Request) {
   const wallet = readWalletHeaderFromRequest(request);
 
   const tasks = await prisma.task.findMany({
-    where: wallet
-      ? {
-          OR: [{ funded: true }, { creator: wallet }],
-        }
-      : { funded: true },
+    where: {
+      OR: wallet ? [{ funded: true }, { creator: wallet }] : [{ funded: true }],
+    },
     orderBy: { createdAt: "desc" },
   });
 

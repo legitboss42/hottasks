@@ -32,11 +32,9 @@ export default async function Home() {
   const wallet = readWalletAddressFromCookieStore(cookieStore) ?? "";
 
   const tasks = await prisma.task.findMany({
-    where: wallet
-      ? {
-          OR: [{ funded: true }, { creator: wallet }],
-        }
-      : { funded: true },
+    where: {
+      OR: wallet ? [{ funded: true }, { creator: wallet }] : [{ funded: true }],
+    },
     orderBy: { createdAt: "desc" },
   });
 

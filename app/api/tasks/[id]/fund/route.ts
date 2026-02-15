@@ -8,38 +8,41 @@ export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const walletAddress = readWalletHeaderFromRequest(req);
+  try {
+    const { id } = await context.params;
+    const wallet = readWalletHeaderFromRequest(req);
+    if (!wallet) {
+      return NextResponse.json({ error: "Wallet required" }, { status: 401 });
+    }
 
-  if (!walletAddress) {
-    return NextResponse.json({ error: "Wallet required" }, { status: 401 });
+    const body = await req.json().catch(() => ({}));
+    const paymentRef = typeof body?.paymentId === "string" ? body.paymentId.trim() : "";
+    const txHash = typeof body?.txHash === "string" ? body.txHash.trim() : "";
+    const storedReference = paymentRef || txHash || null;
+
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+    if (task.creator.toLowerCase() !== wallet.toLowerCase()) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    if (task.funded) {
+      return NextResponse.json({ success: true, alreadyFunded: true });
+    }
+
+    await prisma.task.update({
+      where: { id },
+      data: {
+        funded: true,
+        status: "OPEN",
+        txHash: storedReference,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Funding update failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const body = await req.json().catch(() => ({}));
-  const txHash = typeof body?.txHash === "string" ? body.txHash.trim() : "";
-
-  if (!txHash) {
-    return NextResponse.json({ error: "Missing data" }, { status: 400 });
-  }
-
-  const task = await prisma.task.findUnique({ where: { id } });
-
-  if (!task || task.creator.toLowerCase() !== walletAddress.toLowerCase()) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
-  if (task.funded) {
-    return NextResponse.json({ error: "Task already funded" }, { status: 409 });
-  }
-
-  await prisma.task.update({
-    where: { id },
-    data: {
-      funded: true,
-      txHash,
-      status: "OPEN",
-    },
-  });
-
-  return NextResponse.json({ success: true });
 }
