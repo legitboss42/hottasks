@@ -1,54 +1,70 @@
 # HOTTasks
 
-Micro‑bounty marketplace demo with an escrow‑style lifecycle:
-**Create → Fund → Claim → Submit → Release**.  
-Built for hackathon demos with a fast, server‑enforced flow and a polished UI.
+HOTTasks is a wallet-based micro-bounty demo with a server-enforced lifecycle:
+
+`Create -> Fund -> Claim -> Submit -> Release`
 
 ## Features
-- End‑to‑end lifecycle with server‑side state locks
-- Atomic claim/submit/release transitions
-- Funding tied to creator wallet plus transaction hash
-- Seeded demo data when the DB is empty
-- Minimal, “startup‑grade” UI polish with micro‑feedback
+- Wallet-authenticated task creation and management
+- Creator-only funding workflow with HOT Pay redirect
+- Atomic claim/submit/release transitions on the server
+- Visibility lock: unfunded tasks are only visible to their creator
+- Optional one-shot seed endpoint for demo data
 
 ## Tech Stack
-- Next.js (App Router)
+- Next.js 16 (App Router) + React 19 + TypeScript
 - Prisma + PostgreSQL
-- NEAR wallet selector (connect UX)
+- wagmi + viem (MetaMask / WalletConnect on Sepolia)
 
-## Local Setup
-1. Install dependencies
+## Prerequisites
+- Node.js 20+
+- npm
+- PostgreSQL database
+
+## Environment Variables
+
+Required:
+- `DATABASE_URL` (Prisma datasource URL)
+- `DIRECT_URL` (direct Postgres URL for migrations/introspection)
+- `AUTH_SECRET` (or `NEXTAUTH_SECRET`) for wallet auth cookies
+- `NEXT_PUBLIC_HOTPAY_ITEM_ID` for HOT Pay checkout redirects
+- `NEXT_PUBLIC_APP_URL` public app origin (used in redirects)
+
+Optional:
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` WalletConnect project ID
+- `NEXT_PUBLIC_DEFAULT_CURRENCY_TOKEN_ADDRESS` ERC-20 used for balance display
+
+Example `.env` / `.env.local`:
+```bash
+DATABASE_URL="prisma+postgres://..."
+DIRECT_URL="postgres://..."
+AUTH_SECRET="replace-with-a-long-random-string"
+NEXT_PUBLIC_HOTPAY_ITEM_ID="your_hotpay_item_id"
+NEXT_PUBLIC_APP_URL="https://your-public-domain.com"
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID="your_walletconnect_project_id"
+NEXT_PUBLIC_DEFAULT_CURRENCY_TOKEN_ADDRESS="0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+```
+
+## Local Development
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Create environment files
-- `.env` (used by Prisma CLI)
-- `.env.local` (used by Next.js)
-
-Example:
+2. Push the Prisma schema:
 ```bash
-DATABASE_URL="prisma+postgres://..."
-DIRECT_URL="postgres://..."
-NEXT_PUBLIC_HOTPAY_ITEM_ID="your_item_id"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+npm run prisma:push
 ```
 
-3. Sync the database
-```bash
-npx prisma db push
-```
-
-4. Run the app
+3. Start the dev server:
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+App URL: `http://localhost:3000`
 
 ## Seed Demo Data
-When the database is empty, the UI auto‑calls `/api/seed` to create demo tasks.  
-You can also seed manually:
+The app can seed tasks automatically when empty, or you can call:
 ```bash
 curl -X POST http://localhost:3000/api/seed
 ```
@@ -58,26 +74,19 @@ curl -X POST http://localhost:3000/api/seed
 npm run dev
 npm run build
 npm run start
+npm run lint
 npm run prisma:generate
 npm run prisma:push
 npm run prisma:studio
 ```
 
-## API Routes
-- `GET /api/tasks` – list tasks
-- `POST /api/tasks` – create task
-- `PATCH /api/tasks/[id]` – update task
-- `POST /api/tasks/[id]/fund` – creator-only funding with `txHash`
-- `POST /api/tasks/[id]/claim` – atomic claim
-- `POST /api/tasks/[id]/submit` – submit proof
-- `POST /api/tasks/[id]/release` – release payout (simulated)
-- `POST /api/seed` – seed demo data
-
-## Notes
-- `release` currently simulates payout. Plug in your real HOT Pay call in
-  `app/api/tasks/[id]/release/route.ts`.
-- `funded` is set only via `/api/tasks/[id]/fund` after creator identity and tx hash.
-
-## Deployment
-Deploy on Vercel and set the same env vars in the project settings.  
-Prisma runs on `postinstall` and uses `prisma/schema.prisma`.
+## Main API Routes
+- `GET /api/tasks`
+- `POST /api/tasks`
+- `PATCH /api/tasks/[id]`
+- `POST /api/tasks/[id]/fund`
+- `POST /api/tasks/[id]/claim`
+- `POST /api/tasks/[id]/submit`
+- `POST /api/tasks/[id]/release`
+- `POST /api/tasks/[id]/cancel`
+- `POST /api/seed`
