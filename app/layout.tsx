@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import DailyGuidelineTicker from "@/components/DailyGuidelineTicker";
 import { Web3Provider } from "@/providers/Web3Provider";
 import "./globals.css";
@@ -36,6 +37,7 @@ export default function RootLayout({
       >
         <DailyGuidelineTicker />
         <Web3Provider>{children}</Web3Provider>
+        <Analytics />
       </body>
     </html>
   );

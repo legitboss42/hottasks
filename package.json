@@ -20,6 +20,7 @@
         "@near-wallet-selector/near-wallet": "^8.9.3",
         "@prisma/client": "^6.5.0",
         "@tanstack/react-query": "^5.90.21",
+        "@vercel/analytics": "^1.6.1",
         "@web3modal/wagmi": "^5.1.11",
         "next": "16.1.6",
         "prisma": "^6.5.0",
